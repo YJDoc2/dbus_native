@@ -78,7 +78,7 @@ impl DbusConnection {
             kind: HeaderFieldKind::Member,
             value: "Hello".to_string(),
         });
-        self.method_call(headers, vec![]);
+        self.send_message(MessageKind::MethodCall, headers, vec![]);
 
         Ok(())
     }
@@ -95,7 +95,6 @@ impl DbusConnection {
                 socket::MsgFlags::empty(),
             )
             .unwrap();
-
             let received_byte_count = reply_rcvd.bytes;
 
             ret.extend_from_slice(&mut reply);
@@ -107,9 +106,14 @@ impl DbusConnection {
         ret
     }
 
-    fn method_call(&mut self, headers: Vec<Header>, body: Vec<u8>) {
+    pub fn send_message(
+        &mut self,
+        kind: MessageKind,
+        headers: Vec<Header>,
+        body: Vec<u8>,
+    ) -> Vec<u8> {
         let message = Message {
-            kind: MessageKind::MethodCall,
+            kind,
             id: self.get_msg_id(),
             headers,
             body,
@@ -126,7 +130,7 @@ impl DbusConnection {
         )
         .unwrap();
         let reply = self.receive_complete_message();
-        println!("{:?}", reply);
+        reply
     }
 
     fn get_msg_id(&mut self) -> u32 {
