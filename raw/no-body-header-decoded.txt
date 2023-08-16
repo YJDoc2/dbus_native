@@ -1,0 +1,55 @@
+l // endian
+\x01 // method call
+\x00 // flags
+\x01 // version
+
+
+\x00\x00\x00\x00 // body length = 0
+
+\x01\x00\x00\x00 // id
+
+n\x00\x00\x00 // header array length = 110
+
+\x01 //path
+\x01 // signature length
+o // path-object : signature
+\x00 // always
+
+\x15\x00\x00\x00 // string length
+/org/freedesktop/DBus\x00 // string with null
+\x00\x00 // padding
+
+11+21
+
+\x06 //destination
+\x01 // signature length
+s //string : signature
+\x00 // always
+
+\x14\x00\x00\x00 //string length
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
+12+20
+
+
+\x02 // interface
+\x01 // signature length
+s //string : signature
+\x00 // always
+
+\x14\x00\x00\x00 // string length
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 //padding
+12+20
+
+
+\x03 // member
+\x01 // signature length
+s //string : signature
+\x00  // always
+
+\x05\x00\x00\x00 // string length
+Hello\x00 // string with null
+\x00\x00 //padding
+
+11+5

@@ -1,0 +1,90 @@
+l //  endian
+\x01 // method call
+\x00 // flags
+\x01 // version
+
+9\x00\x00\x00 // body length (ascii 9 ) = 57
+
+\x02\x00\x00\x00 // id
+
+\xa0\x00\x00\x00 // header array length = 160
+
+\x01 // path
+\x01 // signature length
+o   // path-object : signature
+\x00 // always
+
+\x19\x00\x00\x00 // string length = 25
+/org/freedesktop/systemd1\x00 // string with null
+\x00\x00\x00\x00\x00\x00 //  padding
+15+25
+
+
+\x03 // member
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x03\x00\x00\x00 // string length = 3
+Get\x00 // string with null
+\x00\x00\x00\x00 // padding
+13+3
+
+
+\x07 // sender (optional)
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x07\x00\x00\x00 // string length = 7
+:1.1309\x00 // string with null
+// no padding required
+9+7
+
+
+\x06 // destination
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x18\x00\x00\x00 // string length = 24
+org.freedesktop.systemd1\x00 // string with null
+\x00\x00\x00\x00\x00\x00\x00 // padding
+16+24
+
+
+\x02 // interface
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x1f\x00\x00\x00 // string length = 31
+org.freedesktop.DBus.Properties\x00 // string with null
+// no padding required
+
+9+31
+
+\x08 // signature (required when body is present)
+\x01 // signature (of signature length)
+g // type signature  : signature of signature
+\x00 // always
+
+\x02 // length of signature (max 256)
+ss\x00 // signature string
+// no padding required
+
+
+// START OF BODY
+
+<space cahracter>\x00\x00\x00 = 32 // string length = ascii space character = 32
+org.freedesktop.systemd1.Manager\x00
+\x00\x00\x00 // padding
+
+8 + 32
+
+\x0c\x00\x00\x00 // string length = 12
+ControlGroup\x00
+
+5 + 12
+
+// padding is not required after body
