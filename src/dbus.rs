@@ -5,6 +5,7 @@ use nix::sys::socket;
 use crate::message::*;
 use crate::proxy::Proxy;
 
+const REPLY_BUF_SIZE: usize = 512; // half kb seems good enough for most use cases
 pub struct DbusConnection {
     socket: i32,
     msg_ctr: u32,
@@ -58,41 +59,60 @@ impl DbusConnection {
             "BEGIN\r\n".as_bytes(),
             socket::MsgFlags::empty(),
         )?;
-        self.method_call(
-            "/org/freedesktop/DBus",
-            "org.freedesktop.DBus",
-            "org.freedesktop.DBus",
-            "Hello",
-        );
 
-        Ok(())
-    }
-
-    fn method_call(&mut self, path: &str, dest: &str, interface: &str, member: &str) {
         let mut headers = Vec::with_capacity(4);
 
         headers.push(Header {
             kind: HeaderFieldKind::Path,
-            value: path.to_string(),
+            value: "/org/freedesktop/DBus".to_string(),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Destination,
-            value: dest.to_string(),
+            value: "org.freedesktop.DBus".to_string(),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Interface,
-            value: interface.to_string(),
+            value: "org.freedesktop.DBus".to_string(),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Member,
-            value: member.to_string(),
+            value: "Hello".to_string(),
         });
+        self.method_call(headers, vec![]);
 
+        Ok(())
+    }
+
+    fn receive_complete_message(&mut self) -> Vec<u8> {
+        let mut ret = Vec::with_capacity(512);
+        loop {
+            let mut reply: [u8; REPLY_BUF_SIZE] = [0_u8; REPLY_BUF_SIZE];
+            let reply_buffer = IoSliceMut::new(&mut reply[0..]);
+            let reply_rcvd = socket::recvmsg::<()>(
+                self.socket,
+                &mut [reply_buffer],
+                None,
+                socket::MsgFlags::empty(),
+            )
+            .unwrap();
+
+            let received_byte_count = reply_rcvd.bytes;
+
+            ret.extend_from_slice(&mut reply);
+            if received_byte_count < REPLY_BUF_SIZE {
+                // if received byte count is less than buffer size, then we got all
+                break;
+            }
+        }
+        ret
+    }
+
+    fn method_call(&mut self, headers: Vec<Header>, body: Vec<u8>) {
         let message = Message {
             kind: MessageKind::MethodCall,
             id: self.get_msg_id(),
             headers,
-            body: vec![],
+            body,
         };
 
         let serialized = message.serialize();
@@ -105,16 +125,7 @@ impl DbusConnection {
             None,
         )
         .unwrap();
-        let mut reply = [0_u8; 270];
-        let reply_buffer = IoSliceMut::new(&mut reply[0..]);
-        let reply_rcvd = socket::recvmsg::<()>(
-            self.socket,
-            &mut [reply_buffer],
-            None,
-            socket::MsgFlags::empty(),
-        )
-        .unwrap();
-        println!("{:?}", reply_rcvd);
+        let reply = self.receive_complete_message();
         println!("{:?}", reply);
     }
 

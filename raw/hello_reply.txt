@@ -1,120 +1,119 @@
-l
-\x02
-\x01
-\x01
+l // endianness
+\x02 // method return
+\x01 //flag = NO_REPLY_EXPECTED
+\x01 // version
 
-\x0c\x00\x00\x00
+\x0c\x00\x00\x00 // body length = 12
 
-\0xff\0xff\0xff\0xff
+\0xff\0xff\0xff\0xff // serial of message, but as no reply expected, this is set to u32::max
 
-?\x00\x00\x00
+?\x00\x00\x00 // header array length = 63
 
-\x05
-\x01
-u
-\x00
+\x05 // reply_serial
+\x01 // signature length
+u // type  u32 : signature
+\x00 // always
 
-\x01\x00\x00\x00
+\x01\x00\x00\x00 // original message serial code
 
-\x07
-\x01
-s
-\x00
+\x07 sender
+\x01 // signature length
+s // type string : signature
+\x00 // always
 
-\x14\x00\x00\x00
-org.freedesktop.DBus\x00
-\x00\x00\x00
+\x14\x00\x00\x00 // string length = 20
+org.freedesktop.DBus\x00 // string and null
+\x00\x00\x00 // padding
 
-\x06
-\x01
-s
-\x00
+\x06 // destination
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x07\x00\x00\x00
-:1.2072\x00
+\x07\x00\x00\x00 //string length = 7
+:1.2072\x00 // string and null
+// no padding required
 
-\x08
-\x01
-g
-\x00
+\x08 //body signature
+\x01 // signature length
+g // type signature : signature of signature
+\x00 // always
 
-\x01
-s\x00
-\x00
+\x01 // signature length , always 1 byte
+s\x00 // signature string with null
+\x00 // always
 
-\x07\x00\x00\x00
-:1.2072\x00
+---- message body ----
+
+\x07\x00\x00\x00 // string length
+:1.2072\x00 // string with null
 
 
 ----- This is extra signal -----------
 
-l
-\x04 // singal?
-\x01
-\x01
+l // endian
+\x04 // signal
+\x01 // flag = no reply expected
+\x01 // version
 
-\x0c\x00\x00\x00
+\x0c\x00\x00\x00 // body length = 12
 
-\0xff\0xff\0xff\0xff
+\0xff\0xff\0xff\0xff // message serial, u32::max, as no reply expected
 
-\0x8f\x00\x00\x00
+\0x8f\x00\x00\x00 // header length = 143
 
-\x07
-\x01
-s
-\x00
+\x07 // sender
+\x01 // signature length
+s // string type : signature
+\x00 // always
 
-\x14\x00\x00\x00
-org.freedesktop.DBus\x00
-\x00\x00\x00
+\x14\x00\x00\x00 // string length = 20
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
 
-\x06
-\x01
-s
-\x00
+\x06 // destination
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x07\x00\x00\x00
-:1.2072\x00
+\x07\x00\x00\x00 // string length
+:1.2072\x00 // string with null
 
-\x01
-\x01
-o
-\x00
+\x01 //path
+\x01 // signature length
+o // object path : signature
+\x00 // always
 
-\x15\x00\x00\x00
-/org/freedesktop/DBus\x00
-\x00\x00
+\x15\x00\x00\x00 // string length
+/org/freedesktop/DBus\x00 // string with null
+\x00\x00 // padding
 
-\x02
-\x01
-s
-\x00
+\x02 //interface
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x14\x00\x00\x00
-org.freedesktop.DBus\x00
-\x00\x00\x00
+\x14\x00\x00\x00 // string length
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
 
-\x03
-\x01
-s
-\x00
+\x03 //member
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x0c\x00\x00\x00
-NameAcquired\x00
-\x00\x00\x00
+\x0c\x00\x00\x00 // string length
+NameAcquired\x00 // string with null
+\x00\x00\x00 // padding
 
-\x08
-\x01
-g
-\x00
+\x08 // body signature
+\x01 // signature length
+g // signature of signature
+\x00 // always
 
-\x01
-s
-\x00
-\x00
+\x01 // signature length, always 1 byte
+s\x00 // signature string with null
+\x00 // always
 
-\x07\x00\x00\x00
-
-:1.2072
-
-potentially extra \x00\x00\x00\x00\x00\x00\x00
+\x07\x00\x00\x00 // string length
+:1.2072\x00 // string with null
