@@ -5,7 +5,16 @@ use crate::utils::adjust_padding;
 
 pub enum Endian {
     Little,
-    Big,
+    Big, // we do not support this unless explicitly requested in youki's issues
+}
+
+impl Endian {
+    fn to_byte(&self) -> u8 {
+        match self {
+            Self::Big => b'b',
+            Self::Little => b'l',
+        }
+    }
 }
 
 // NOTE that we do not support all of the possible values and options, only those
@@ -14,7 +23,7 @@ pub enum MessageType {
     MethodCall,
     MethodReturn,
     Error,
-    Signal,
+    Signal, // we will ignore this for all intents and purposes
 }
 
 pub enum HeaderFieldKind {
@@ -26,7 +35,7 @@ pub enum HeaderFieldKind {
     Destination,
     Sender,
     BodySignature,
-    UnixFd,
+    UnixFd, // we will not use this, just for the sake of completion
 }
 
 pub struct Header {
@@ -35,17 +44,40 @@ pub struct Header {
 }
 
 pub struct Preamble {
-    pub endian: Endian,
-    pub mtype: MessageType,
-    pub flags: u8,
-    pub version: u8,
+    endian: Endian,
+    mtype: MessageType,
+    flags: u8,
+    version: u8,
 }
+
+impl Preamble {
+    fn new(mtype: MessageType) -> Self {
+        Self {
+            endian: Endian::Little,
+            mtype,
+            flags: 0,   // until we need some flags to be used, this is fixed
+            version: 1, // this is fixed until dbus releases a new major version
+        }
+    }
+}
+
 pub struct Message {
-    pub preamble: Preamble,
-    pub serial: u32,
-    pub body_length: u32,
-    pub headers: Vec<Header>,
-    pub body: Vec<u8>,
+    preamble: Preamble,
+    serial: u32,
+    headers: Vec<Header>,
+    body: Vec<u8>,
+}
+
+impl Message {
+    pub fn new(mtype: MessageType, serial: u32, headers: Vec<Header>, body: Vec<u8>) -> Self {
+        let preamble = Preamble::new(mtype);
+        Self {
+            preamble,
+            serial: serial,
+            headers,
+            body,
+        }
+    }
 }
 
 // serialize without padding
@@ -77,7 +109,6 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
 
         // header preamble
         temp.extend_from_slice(&[header_kind, signature_length, header_signature, 0]);
-        // header_length_ctr += 4; // this is fixed for all
 
         let header_value_length = header.value.len() as u32;
 
@@ -85,19 +116,15 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
         match &header.kind {
             HeaderFieldKind::BodySignature => {
                 temp.push(header_value_length as u8);
-                // header_length_ctr += 1;
             }
             _ => {
                 temp.extend_from_slice(&header_value_length.to_le_bytes());
-                // header_length_ctr += 4;
             }
         }
 
         temp.extend_from_slice(header.value.as_bytes());
-        // header_length_ctr += header.value.len();
 
         temp.push(0); // null terminator
-                      // header_length_ctr += 1;
 
         ret.append(&mut temp);
     }
@@ -114,8 +141,13 @@ impl Message {
             MessageType::Signal => 4,
         };
 
-        // Endianness , message type, flags, dbus spec version
-        let mut message = vec![b'l', mtype, 0, 1];
+        // Endian, message type, flags, dbus spec version
+        let mut message = vec![
+            self.preamble.endian.to_byte(),
+            mtype,
+            self.preamble.flags,
+            self.preamble.version,
+        ];
 
         // set body length
         message.extend_from_slice(&(self.body.len() as u32).to_le_bytes());

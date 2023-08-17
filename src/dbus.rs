@@ -112,18 +112,7 @@ impl DbusConnection {
         headers: Vec<Header>,
         body: Vec<u8>,
     ) -> Vec<u8> {
-        let message = Message {
-            preamble: Preamble {
-                endian: Endian::Little,
-                mtype,
-                flags: 0,
-                version: 1,
-            },
-            serial: self.get_msg_id(),
-            body_length: body.len() as u32,
-            headers,
-            body,
-        };
+        let message = Message::new(mtype, self.get_msg_id(), headers, body);
 
         let serialized = message.serialize();
         socket::sendmsg::<()>(
