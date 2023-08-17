@@ -1,5 +1,3 @@
-use crate::serialize::DbusSerialize;
-
 mod containers;
 mod dbus;
 mod message;

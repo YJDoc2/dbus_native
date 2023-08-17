@@ -40,15 +40,12 @@ impl<'conn> Proxy<'conn> {
         });
 
         let mut serialized_body = vec![];
-        match body {
-            Some(v) => {
-                headers.push(Header {
-                    kind: HeaderFieldKind::BodySignature,
-                    value: HeaderValue::String(T::get_signature()),
-                });
-                v.serialize(&mut serialized_body);
-            }
-            None => {}
+        if let Some(v) = body {
+            headers.push(Header {
+                kind: HeaderFieldKind::BodySignature,
+                value: HeaderValue::String(T::get_signature()),
+            });
+            v.serialize(&mut serialized_body);
         }
         self.conn
             .send_message(MessageType::MethodCall, headers, serialized_body)

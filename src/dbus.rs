@@ -49,7 +49,7 @@ impl DbusConnection {
 
         socket::recv(self.socket, &mut buf, socket::MsgFlags::empty())?;
 
-        let reply: Vec<u8> = buf.iter().filter(|v| **v != 0).map(|v| *v).collect();
+        let reply: Vec<u8> = buf.iter().filter(|v| **v != 0).copied().collect();
         let reply = unsafe { String::from_utf8_unchecked(reply) };
         if !reply.starts_with("OK") {
             panic!("Authentication failed, got message : {}", reply);
@@ -60,24 +60,24 @@ impl DbusConnection {
             socket::MsgFlags::empty(),
         )?;
 
-        let mut headers = Vec::with_capacity(4);
-
-        headers.push(Header {
-            kind: HeaderFieldKind::Path,
-            value: HeaderValue::String("/org/freedesktop/DBus".to_string()),
-        });
-        headers.push(Header {
-            kind: HeaderFieldKind::Destination,
-            value: HeaderValue::String("org.freedesktop.DBus".to_string()),
-        });
-        headers.push(Header {
-            kind: HeaderFieldKind::Interface,
-            value: HeaderValue::String("org.freedesktop.DBus".to_string()),
-        });
-        headers.push(Header {
-            kind: HeaderFieldKind::Member,
-            value: HeaderValue::String("Hello".to_string()),
-        });
+        let headers = vec![
+            Header {
+                kind: HeaderFieldKind::Path,
+                value: HeaderValue::String("/org/freedesktop/DBus".to_string()),
+            },
+            Header {
+                kind: HeaderFieldKind::Destination,
+                value: HeaderValue::String("org.freedesktop.DBus".to_string()),
+            },
+            Header {
+                kind: HeaderFieldKind::Interface,
+                value: HeaderValue::String("org.freedesktop.DBus".to_string()),
+            },
+            Header {
+                kind: HeaderFieldKind::Member,
+                value: HeaderValue::String("Hello".to_string()),
+            },
+        ];
         self.send_message(MessageType::MethodCall, headers, vec![]);
 
         Ok(())
@@ -97,7 +97,7 @@ impl DbusConnection {
             .unwrap();
             let received_byte_count = reply_rcvd.bytes;
 
-            ret.extend_from_slice(&mut reply[0..received_byte_count]);
+            ret.extend_from_slice(&reply[0..received_byte_count]);
             if received_byte_count < REPLY_BUF_SIZE {
                 // if received byte count is less than buffer size, then we got all
                 break;
@@ -125,7 +125,7 @@ impl DbusConnection {
         let reply = self.receive_complete_response();
         let mut ret = Vec::new();
         let mut buf = &reply[..];
-        while buf.len() > 0 {
+        while !buf.is_empty() {
             let mut ctr = 0;
             let msg = Message::deserialize(&buf[ctr..], &mut ctr);
             buf = &buf[ctr..];

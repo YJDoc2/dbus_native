@@ -5,7 +5,7 @@ pub trait DbusSerialize {
     where
         Self: Sized;
     fn serialize(&self, buf: &mut Vec<u8>);
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self
     where
         Self: Sized;
 }
@@ -25,7 +25,7 @@ impl DbusSerialize for () {
         unreachable!("should never reach here");
     }
     // for (), we have to ignore body , so we simply clear it out
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         *counter = buf.len();
     }
 }
@@ -38,7 +38,7 @@ impl<T1: DbusSerialize, T2: DbusSerialize> DbusSerialize for (T1, T2) {
         self.0.serialize(buf);
         self.1.serialize(buf);
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         let t1 = T1::deserialize(buf, counter);
         let t2 = T2::deserialize(buf, counter);
         (t1, t2)
@@ -57,7 +57,7 @@ impl DbusSerialize for String {
         buf.extend_from_slice(self.as_bytes());
         buf.push(0); // needs to be null terminated
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 4);
         let length = u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
         *counter += 4;
@@ -79,7 +79,7 @@ impl DbusSerialize for bool {
         };
         buf.extend_from_slice(&val.to_le_bytes());
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 4);
         let ret = u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap());
         *counter += 4;
@@ -96,7 +96,7 @@ impl DbusSerialize for u16 {
         adjust_padding(buf, 2);
         buf.extend_from_slice(&self.to_le_bytes());
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 2);
         let ret = u16::from_le_bytes(buf[*counter..*counter + 2].try_into().unwrap());
         *counter += 2;
@@ -113,7 +113,7 @@ impl DbusSerialize for u32 {
         adjust_padding(buf, 4);
         buf.extend_from_slice(&self.to_le_bytes());
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 4);
         let ret = u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap());
         *counter += 4;
@@ -130,7 +130,7 @@ impl DbusSerialize for u64 {
         adjust_padding(buf, 8);
         buf.extend_from_slice(&self.to_le_bytes());
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 8);
         let ret = u64::from_le_bytes(buf[*counter..*counter + 8].try_into().unwrap());
         *counter += 8;
@@ -151,7 +151,7 @@ impl<T: DbusSerialize> DbusSerialize for Vec<T> {
             elem.serialize(buf);
         }
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 4);
         let length = u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
         *counter += 4;
@@ -177,7 +177,7 @@ impl<T: DbusSerialize> DbusSerialize for Variant<T> {
         buf.push(0);
         self.0.serialize(buf);
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 1);
 
         let signature_length = buf[*counter] as usize;
@@ -210,7 +210,7 @@ impl<T: DbusSerialize> DbusSerialize for Structure<T> {
         self.key.serialize(buf);
         self.val.serialize(buf);
     }
-    fn deserialize(buf: &Vec<u8>, counter: &mut usize) -> Self {
+    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         align_counter(counter, 8);
         let key = String::deserialize(buf, counter);
         let val = T::deserialize(buf, counter);

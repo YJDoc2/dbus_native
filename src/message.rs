@@ -77,7 +77,7 @@ impl HeaderValue {
     fn len(&self) -> usize {
         match self {
             Self::String(s) => s.len(),
-            Self::U32(v) => 4, // u32 is encoded as 4 bytes
+            Self::U32(_) => 4, // u32 is encoded as 4 bytes
         }
     }
 }
@@ -197,7 +197,7 @@ impl Message {
         let preamble = Preamble::new(mtype);
         Self {
             preamble,
-            serial: serial,
+            serial,
             headers,
             body,
         }
@@ -298,9 +298,7 @@ impl Message {
         let required_padding = (8 - (message.len() % 8)) % 8;
 
         // padding to 8 byte boundary
-        for _ in 0..required_padding {
-            message.push(0);
-        }
+        message.resize(message.len() + required_padding, 0);
 
         // body
         message.append(&mut self.body);
