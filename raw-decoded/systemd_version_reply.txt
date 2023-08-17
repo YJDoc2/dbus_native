@@ -46,8 +46,8 @@ s // string : signature
 -------- body ----------
 
 \x01 // signature length ( as part of variant)
-s // string : signature
-\x00\x00 // padding for aligning to 4
+s\x00 // signature string with null byte
+\x00 // padding for aligning to 4
 
 .\x00\x00\x00 // string length = 46
 249.11-0ubuntu3.9pop0~1689262825~22.04~3be1d98\x00 // string with null
