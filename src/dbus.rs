@@ -64,19 +64,19 @@ impl DbusConnection {
 
         headers.push(Header {
             kind: HeaderFieldKind::Path,
-            value: "/org/freedesktop/DBus".to_string(),
+            value: HeaderValue::String("/org/freedesktop/DBus".to_string()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Destination,
-            value: "org.freedesktop.DBus".to_string(),
+            value: HeaderValue::String("org.freedesktop.DBus".to_string()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Interface,
-            value: "org.freedesktop.DBus".to_string(),
+            value: HeaderValue::String("org.freedesktop.DBus".to_string()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Member,
-            value: "Hello".to_string(),
+            value: HeaderValue::String("Hello".to_string()),
         });
         self.send_message(MessageType::MethodCall, headers, vec![]);
 

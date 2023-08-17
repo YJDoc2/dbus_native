@@ -24,19 +24,19 @@ impl<'conn> Proxy<'conn> {
 
         headers.push(Header {
             kind: HeaderFieldKind::Path,
-            value: self.path.clone(),
+            value: HeaderValue::String(self.path.clone()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Destination,
-            value: self.dest.clone(),
+            value: HeaderValue::String(self.dest.clone()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Interface,
-            value: interface.to_string(),
+            value: HeaderValue::String(interface.to_string()),
         });
         headers.push(Header {
             kind: HeaderFieldKind::Member,
-            value: member.to_string(),
+            value: HeaderValue::String(member.to_string()),
         });
 
         let mut serialized_body = vec![];
@@ -44,7 +44,7 @@ impl<'conn> Proxy<'conn> {
             Some(v) => {
                 headers.push(Header {
                     kind: HeaderFieldKind::BodySignature,
-                    value: T::get_signature(),
+                    value: HeaderValue::String(T::get_signature()),
                 });
                 v.serialize(&mut serialized_body);
             }
