@@ -3,30 +3,47 @@
 
 use crate::utils::adjust_padding;
 
+pub enum Endian {
+    Little,
+    Big,
+}
+
 // NOTE that we do not support all of the possible values and options, only those
 // which are relevant and used by youki
-pub enum MessageKind {
+pub enum MessageType {
     MethodCall,
-    MethodReply,
+    MethodReturn,
+    Error,
+    Signal,
 }
 
 pub enum HeaderFieldKind {
     Path,
     Interface,
     Member,
-    Destination,
     ErrorName,
+    ReplySerial,
+    Destination,
     Sender,
     BodySignature,
+    UnixFd,
 }
 
 pub struct Header {
     pub kind: HeaderFieldKind,
     pub value: String,
 }
+
+pub struct Preamble {
+    pub endian: Endian,
+    pub mtype: MessageType,
+    pub flags: u8,
+    pub version: u8,
+}
 pub struct Message {
-    pub kind: MessageKind,
-    pub id: u32,
+    pub preamble: Preamble,
+    pub serial: u32,
+    pub body_length: u32,
     pub headers: Vec<Header>,
     pub body: Vec<u8>,
 }
@@ -37,20 +54,17 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
     for header in headers {
         let mut temp = vec![];
         adjust_padding(&mut ret, 8);
-        // let required_padding = (8 - (ret.len() % 8)) % 8;
-
-        // for _ in 0..required_padding {
-        //     temp.push(0);
-        // }
 
         let header_kind: u8 = match &header.kind {
             HeaderFieldKind::Path => 1,
             HeaderFieldKind::Interface => 2,
             HeaderFieldKind::Member => 3,
             HeaderFieldKind::ErrorName => 4,
+            HeaderFieldKind::ReplySerial => 5,
             HeaderFieldKind::Destination => 6,
             HeaderFieldKind::Sender => 7,
             HeaderFieldKind::BodySignature => 8,
+            HeaderFieldKind::UnixFd => 9,
         };
 
         let header_signature: u8 = match &header.kind {
@@ -93,9 +107,11 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
 
 impl Message {
     pub fn serialize(mut self) -> Vec<u8> {
-        let mtype = match self.kind {
-            MessageKind::MethodCall => 1,
-            MessageKind::MethodReply => 2,
+        let mtype = match self.preamble.mtype {
+            MessageType::MethodCall => 1,
+            MessageType::MethodReturn => 2,
+            MessageType::Error => 3,
+            MessageType::Signal => 4,
         };
 
         // Endianness , message type, flags, dbus spec version
@@ -105,7 +121,7 @@ impl Message {
         message.extend_from_slice(&(self.body.len() as u32).to_le_bytes());
 
         // set id
-        message.extend_from_slice(&self.id.to_le_bytes());
+        message.extend_from_slice(&self.serial.to_le_bytes());
 
         let serialized_headers = serialize_headers(&self.headers);
 

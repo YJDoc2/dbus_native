@@ -51,6 +51,6 @@ impl<'conn> Proxy<'conn> {
             None => {}
         }
         self.conn
-            .send_message(MessageKind::MethodCall, headers, serialized_body)
+            .send_message(MessageType::MethodCall, headers, serialized_body)
     }
 }

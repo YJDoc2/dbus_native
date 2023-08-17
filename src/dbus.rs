@@ -78,7 +78,7 @@ impl DbusConnection {
             kind: HeaderFieldKind::Member,
             value: "Hello".to_string(),
         });
-        self.send_message(MessageKind::MethodCall, headers, vec![]);
+        self.send_message(MessageType::MethodCall, headers, vec![]);
 
         Ok(())
     }
@@ -108,19 +108,24 @@ impl DbusConnection {
 
     pub fn send_message(
         &mut self,
-        kind: MessageKind,
+        mtype: MessageType,
         headers: Vec<Header>,
         body: Vec<u8>,
     ) -> Vec<u8> {
         let message = Message {
-            kind,
-            id: self.get_msg_id(),
+            preamble: Preamble {
+                endian: Endian::Little,
+                mtype,
+                flags: 0,
+                version: 1,
+            },
+            serial: self.get_msg_id(),
+            body_length: body.len() as u32,
             headers,
             body,
         };
 
         let serialized = message.serialize();
-        // println!("{:?}", serialized);
         socket::sendmsg::<()>(
             self.socket,
             &[IoSlice::new(&serialized)],

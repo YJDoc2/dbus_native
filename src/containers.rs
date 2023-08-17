@@ -1,5 +1,3 @@
-
-
 // impl<T: DbusSerialize> DbusSerialize for Variant<T> {
 //     fn get_signature() -> String {
 //         "v".to_string()
@@ -19,6 +17,6 @@
 //         "(sv)".to_string()
 //     }
 //     fn serialize(&self, buf: &mut Vec<u8>) {
-        
+
 //     }
 // }
