@@ -5,7 +5,7 @@ use nix::sys::socket;
 use crate::message::*;
 use crate::proxy::Proxy;
 
-const REPLY_BUF_SIZE: usize = 512; // half kb seems good enough for most use cases
+const REPLY_BUF_SIZE: usize = 128; // seems good enough  tradeoff between extra size and repeated calls
 pub struct DbusConnection {
     socket: i32,
     msg_ctr: u32,
@@ -83,7 +83,7 @@ impl DbusConnection {
         Ok(())
     }
 
-    fn receive_complete_message(&mut self) -> Vec<u8> {
+    fn receive_complete_response(&mut self) -> Vec<u8> {
         let mut ret = Vec::with_capacity(512);
         loop {
             let mut reply: [u8; REPLY_BUF_SIZE] = [0_u8; REPLY_BUF_SIZE];
@@ -97,7 +97,7 @@ impl DbusConnection {
             .unwrap();
             let received_byte_count = reply_rcvd.bytes;
 
-            ret.extend_from_slice(&mut reply);
+            ret.extend_from_slice(&mut reply[0..received_byte_count]);
             if received_byte_count < REPLY_BUF_SIZE {
                 // if received byte count is less than buffer size, then we got all
                 break;
@@ -111,9 +111,8 @@ impl DbusConnection {
         mtype: MessageType,
         headers: Vec<Header>,
         body: Vec<u8>,
-    ) -> Vec<u8> {
+    ) -> Vec<Message> {
         let message = Message::new(mtype, self.get_msg_id(), headers, body);
-
         let serialized = message.serialize();
         socket::sendmsg::<()>(
             self.socket,
@@ -123,8 +122,16 @@ impl DbusConnection {
             None,
         )
         .unwrap();
-        let reply = self.receive_complete_message();
-        reply
+        let reply = self.receive_complete_response();
+        let mut ret = Vec::new();
+        let mut buf = &reply[..];
+        while buf.len() > 0 {
+            let mut ctr = 0;
+            let msg = Message::deserialize(&buf[ctr..], &mut ctr);
+            buf = &buf[ctr..];
+            ret.push(msg);
+        }
+        ret
     }
 
     fn get_msg_id(&mut self) -> u32 {

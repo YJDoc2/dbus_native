@@ -19,7 +19,7 @@ impl<'conn> Proxy<'conn> {
         interface: &str,
         member: &str,
         body: Option<T>,
-    ) -> Vec<u8> {
+    ) -> Vec<Message> {
         let mut headers = Vec::with_capacity(4);
 
         headers.push(Header {

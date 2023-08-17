@@ -256,12 +256,11 @@ fn deserialize_headers(buf: &[u8]) -> Vec<Header> {
     let mut ret = Vec::new();
 
     let mut ctr = 0;
-
+    align_counter(&mut ctr, 8);
     while ctr < buf.len() {
-        align_counter(&mut ctr, 8);
         let header = Header::parse(buf, &mut ctr);
+        align_counter(&mut ctr, 8);
         ret.push(header);
-        // todo move header parse in separate stuff
     }
 
     ret
@@ -311,48 +310,45 @@ impl Message {
         message
     }
 
-    pub fn deserialize(buf: Vec<u8>) -> Self {
-        let mut counter = 0;
+    pub fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
+        let endian = Endian::from_byte(buf[*counter]);
 
-        let endian = Endian::from_byte(buf[0]);
-
-        if !matches!(endian, Endian::Big) {
+        if !matches!(endian, Endian::Little) {
             panic!("we do not support big endian yet");
         }
 
-        let mtype = match buf[1] {
+        let mtype = match buf[*counter + 1] {
             1 => MessageType::MethodCall,
             2 => MessageType::MethodReturn,
             3 => MessageType::Error,
             4 => MessageType::Signal,
-            _ => panic!("invalid message type {}", buf[1]),
+            _ => panic!("invalid message type {}", buf[*counter + 1]),
         };
-        let _flags = buf[2]; // we basically ignore flags
-        let version = buf[3];
+        let _flags = buf[*counter + 2]; // we basically ignore flags
+        let version = buf[*counter + 3];
         if version != 1 {
             panic!("when did dbus release new version?!?!?!");
         }
-        counter += 4;
+        *counter += 4;
 
         let preamble = Preamble::new(mtype);
-
         let body_length =
-            u32::from_le_bytes(buf[counter..counter + 4].try_into().unwrap()) as usize;
-        counter += 4;
+            u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
+        *counter += 4;
 
-        let serial = u32::from_le_bytes(buf[counter..counter + 4].try_into().unwrap());
-        counter += 4;
+        let serial = u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap());
+        *counter += 4;
 
         let header_array_length =
-            u32::from_le_bytes(buf[counter..counter + 4].try_into().unwrap()) as usize;
-        counter += 4;
+            u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
+        *counter += 4;
 
-        let headers = deserialize_headers(&buf[counter..counter + header_array_length]);
+        let headers = deserialize_headers(&buf[*counter..*counter + header_array_length]);
+        *counter += header_array_length;
+        align_counter(counter, 8);
 
-        counter += header_array_length;
-        align_counter(&mut counter, 8);
-
-        let body = Vec::from(&buf[counter..counter + body_length]);
+        let body = Vec::from(&buf[*counter..*counter + body_length]);
+        *counter += body_length;
 
         Self {
             preamble,
