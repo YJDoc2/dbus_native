@@ -1,0 +1,62 @@
+l // endian
+\x01 // method call
+\x00 // flags
+\x01 // version
+
+8\x00\x00\x00 // body length = 56
+
+\x03\x00\x00\x00 // id
+
+\0x80\x00\x00\x00 // header array length = 128
+
+\x01 // path
+\x01 // signature length
+o // object path : signature
+\x00 // always
+
+\x15\x00\x00\x00 // string length = 21
+/org/freedesktop/DBus\x00 // string with null
+\x00\x00 // padding
+
+\x06 //destination
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x14\x00\x00\x00 // string length = 20
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
+
+\x02 //interface
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x1f\x00\x00\x00 // string length = 31
+org.freedesktop.DBus.Properties\x00 // string with null
+
+\x03 // member
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x03\x00\x00\x00 // string length = 3
+Get\x00 // string with null
+\x00\x00\x00\x00 // padding
+
+\x08 //signature
+\x01 // signature length
+g // signature of signature
+\x00 // always
+
+\x02 // string length
+as\x00 // signature as string with null
+
+\x02\x00\x00\x00
+
+<space cahracter>\x00\x00\x00
+org.freedesktop.systemd1.Manager\x00
+\x00\x00\x00
+
+\x07\x00\x00\x00
+Version\x00

@@ -1,48 +1,49 @@
-l
-\x02
-\x01
-\x01
+l // endian
+\x02 // method reply
+\x01 // flag = no reply expected
+\x01 // version
 
-%\x00\x00\x00
+%\x00\x00\x00 // body length = 37
 
-\0xff\0xff\0xff\0xff
+\0xff\0xff\0xff\0xff // id, u32::max as no reply expected
 
-?\x00\x00\x00
+?\x00\x00\x00 // header array length = 63
 
-\x05
-\x01
-u
-\x00
+\x05 // reply serial id (original message id)
+\x01 // signature length
+u // signature u32
+\x00 // always
 
-\x02\x00\x00\x00
+\x02\x00\x00\x00 // original message id
 
-\x07
-\x01
-s
-\x00
+\x07  // sender
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x14\x00\x00\x00
-org.freedesktop.DBus\x00
-\x00\x00\x00
+\x14\x00\x00\x00 // string length = 20
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
 
-\x06
-\x01
-s
-\x00
+\x06 //destination
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x06\x00\x00\x00
-:1.446\x00
-\x00
+\x06\x00\x00\x00 // string length = 6
+:1.446\x00 // string with null
+\x00 // padding
 
-\x08
-\x01
-g
-\x00
+\x08 // body signature
+\x01 // signature length
+g // signature of signature
+\x00 // always
 
-\x01
-s\x00
-\x00
+\x01 // signature string length, always in 1 byte
+s\x00 // signature string with null
+\x00 // padding
 
-<space charcter>\x00\x00\x00
-7fefdf23a338927c4694a4af050f9171\x00
-\x00\x00\x00
+----- BODY starts here -----
+
+<space character>\x00\x00\x00 // string length = 32
+7fefdf23a338927c4694a4af050f9171\x00 // string with null

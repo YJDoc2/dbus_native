@@ -1,58 +1,53 @@
-l
-\x02
-\x01
-\x01
+l // endian
+\x02 // method return
+\x01 // flags = no reply expected
+\x01 // version
 
-7\x00\x00\x00
+7\x00\x00\x00 // body length = 55
 
-\0xa
+\0xa7\x07\x00\x00 // id
 
-7\x07\x00\x00
+-\x00\x00\x00 // header array length = 45
 
--\x00\x00\x00
+\x05 // reply serial
+\x01 // signature length
+u // u32 : signature
+\x00 // always
 
-\x05
-\x01
-u
-\x00
+\x03\x00\x00\x00 // message id
 
-\x03
-\x00\x00\x00
+\x06 //destination
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x06
-\x01
-s
-\x00
+\x06\x00\x00\x00 // string length
+:1.963\x00 // string with null
+\x00 // padding
 
-\x06\x00\x00\x00
-:1.963\x00
-\x00
+\x08 //signature
+\x01 // signature length
+g // signature of signature
+\x00 // always
 
-\x08
-\x01
-g
-\x00
+\x01 // signature length, always 1 byte
+v\x00 // variant
+\x00 // padding
 
-\x01
-v\x00
-\x00
+\x07 //sender
+\x01 // signature length
+s // string : signature
+\x00 // always
 
-\x07
-\x01
-s
-\x00
+\x04\x00\x00\x00 // string length
+:1.2\x00 // string with null
+\x00\x00\x00 // padding
 
-\x04\x00\x00\x00
-:1.2\x00
-\x00\x00\x00
+-------- body ----------
 
-\x01
-s
-\x00
-\x00
+\x01 // signature length ( as part of variant)
+s // string : signature
+\x00\x00 // padding for aligning to 4
 
-.\x00\x00\x00
-
-249.11-0ubuntu3.9pop0~1689262825~22.04~3be1d98\x00
-
-\x00
+.\x00\x00\x00 // string length = 46
+249.11-0ubuntu3.9pop0~1689262825~22.04~3be1d98\x00 // string with null

@@ -1,6 +1,60 @@
-l
-\x03
-\x01
-\x01
+// This was gotten by giving wring interface and path for method call
 
-\x16\x00\x00\x00|0xff|0xff|0xff|0xffw\x00\x00\x00\x05\x01u\x00\x03\x00\x00\x00\x07\x01s\x00\x14\x00\x00\x00org.freedesktop.DBus\x00\x00\x00\x00\x04\x01s\x00+\x00\x00\x00org.freedesktop.DBus.Error.UnknownInterface\x00\x00\x00\x00\x00\x08\x01g\x00\x01s\x00\x00\x06\x01s\x00\x06\x00\x00\x00:1.868\x00\x00\x11\x00\x00\x00Invalid interface\x00\x00\x00
+l // endian
+\x03 // message type error
+\x01 // flags = no reply expected
+\x01 // version
+
+\x16\x00\x00\x00 // body length = 22
+
+\0xff\0xff\0xff\0xff // message id, u32::max as no reply expected
+
+w\x00\x00\x00 // header array length = 119
+
+\x05 // reply serial
+\x01 // signature length
+u // type u32 : signature 
+\x00 // always
+
+\x03\x00\x00\x00 // message id for which this reply is applicable
+
+\x07 // sender
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x14\x00\x00\x00 // string length
+org.freedesktop.DBus\x00 // string with null
+\x00\x00\x00 // padding
+
+\x04 //error name
+\x01 // signature length
+s // string : signature
+\x00 // always
+
++\x00\x00\x00 // string length = 43
+org.freedesktop.DBus.Error.UnknownInterface\x00 // string with null
+\x00\x00\x00\x00 // padding
+
+\x08 //body signature
+\x01 // signature length
+g // signature of signature
+\x00 // always
+
+\x01 // signature length, always 1 byte
+s\x00 // signature string with null
+\x00 // always
+
+\x06 //destination
+\x01 // signature length
+s // string : signature
+\x00 // always
+
+\x06\x00\x00\x00 // string length
+:1.868\x00 // string with null
+\x00 // padding
+
+----- body ------
+
+\x11\x00\x00\x00 // string length
+Invalid interface\x00 // string with null
