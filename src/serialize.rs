@@ -10,6 +10,7 @@ pub trait DbusSerialize {
         Self: Sized;
 }
 
+#[derive(Debug)]
 pub struct Variant<T>(pub T);
 
 pub struct Structure<T: DbusSerialize> {

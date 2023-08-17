@@ -1,3 +1,5 @@
+use crate::serialize::Variant;
+
 mod containers;
 mod dbus;
 mod message;
@@ -11,7 +13,7 @@ fn main() {
         "org.freedesktop.DBus".to_string(),
         "/org/freedesktop/DBus".to_string(),
     );
-    let reply = proxy.method_call::<()>("org.freedesktop.DBus", "GetId", None);
+    let reply = proxy.method_call::<(), String>("org.freedesktop.DBus", "GetId", None);
     println!("{:?}", reply);
 
     let mut proxy = dbus.proxy(
@@ -22,6 +24,10 @@ fn main() {
         "org.freedesktop.systemd1.Manager".to_string(),
         "Version".to_string(),
     );
-    let reply = proxy.method_call("org.freedesktop.DBus.Properties", "Get", Some(body));
+    let reply = proxy.method_call::<_, Variant<String>>(
+        "org.freedesktop.DBus.Properties",
+        "Get",
+        Some(body),
+    );
     println!("{:?}", reply);
 }

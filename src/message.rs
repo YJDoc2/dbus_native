@@ -27,7 +27,7 @@ impl Endian {
 
 // NOTE that we do not support all of the possible values and options, only those
 // which are relevant and used by youki
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MessageType {
     MethodCall,
     MethodReturn,
@@ -35,7 +35,7 @@ pub enum MessageType {
     Signal, // we will ignore this for all intents and purposes
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum HeaderFieldKind {
     Path,
     Interface,
@@ -168,7 +168,7 @@ impl Header {
 #[derive(Debug)]
 pub struct Preamble {
     endian: Endian,
-    mtype: MessageType,
+    pub mtype: MessageType,
     flags: u8,
     version: u8,
 }
@@ -186,10 +186,10 @@ impl Preamble {
 
 #[derive(Debug)]
 pub struct Message {
-    preamble: Preamble,
-    serial: u32,
-    headers: Vec<Header>,
-    body: Vec<u8>,
+    pub preamble: Preamble,
+    pub serial: u32,
+    pub headers: Vec<Header>,
+    pub body: Vec<u8>,
 }
 
 impl Message {
