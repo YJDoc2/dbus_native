@@ -30,4 +30,15 @@ fn main() {
         Some(body),
     );
     println!("{:?}", reply);
+
+    let body = (
+        "org.freedesktop.systemd1.Manager".to_string(),
+        "ControlGroup".to_string(),
+    );
+    let reply = proxy.method_call::<_, Variant<String>>(
+        "org.freedesktop.DBus.Properties",
+        "Get",
+        Some(body),
+    );
+    println!("{:?}", reply);
 }

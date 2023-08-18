@@ -138,22 +138,21 @@ impl Header {
                 let len = u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()) as usize;
                 *ctr += 4;
                 let string = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
-                *ctr += len;
+                *ctr += len + 1; // +1 to account for null
                 HeaderValue::String(string)
             }
             b's' => {
                 let len = u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()) as usize;
                 *ctr += 4;
                 let string = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
-                *ctr += len;
+                *ctr += len + 1; // +1 to account for null
                 HeaderValue::String(string)
             }
             b'g' => {
                 let len = buf[*ctr] as usize;
                 *ctr += 1;
                 let signature = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
-                *ctr += len;
-                *ctr += 1; // trailing null byte
+                *ctr += len + 1; //+1 to account for null byte
                 HeaderValue::String(signature)
             }
             _ => panic!("unexpected header signature {}", expected_header_signature),
