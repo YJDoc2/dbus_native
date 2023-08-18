@@ -92,7 +92,7 @@ impl<'conn> Proxy<'conn> {
             ));
         }
 
-        if expected_signature == "".to_string() {
+        if expected_signature == *"" {
             // fixme  . This hack is for () type, when nno reply body is expected
             let mut ctr = 0;
             return Ok(Output::deserialize(&[], &mut ctr));

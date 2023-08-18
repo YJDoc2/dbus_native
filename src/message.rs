@@ -25,6 +25,35 @@ impl Endian {
     }
 }
 
+// there are others, but these are the only once we need
+#[derive(Debug, PartialEq, Eq)]
+pub enum HeaderSignature {
+    Object,
+    U32,
+    String,
+    Signature,
+}
+
+impl HeaderSignature {
+    fn to_byte(&self) -> u8 {
+        match self {
+            Self::Object => b'o',
+            Self::Signature => b'g',
+            Self::String => b's',
+            Self::U32 => b'u',
+        }
+    }
+    fn from_byte(byte: u8) -> Self {
+        match byte {
+            b'o' => Self::Object,
+            b'g' => Self::Signature,
+            b's' => Self::String,
+            b'u' => Self::U32,
+            _ => panic!("unexpected signature {}", byte),
+        }
+    }
+}
+
 // NOTE that we do not support all of the possible values and options, only those
 // which are relevant and used by youki
 #[derive(Debug, PartialEq, Eq)]
@@ -49,13 +78,13 @@ pub enum HeaderFieldKind {
 }
 
 impl HeaderFieldKind {
-    fn signature(&self) -> u8 {
+    fn signature(&self) -> HeaderSignature {
         match &self {
-            Self::Path => b'o',
-            Self::ReplySerial => b'u',
-            Self::BodySignature => b'g',
-            Self::UnixFd => b'u',
-            _ => b's', // rest all are encoded as string
+            Self::Path => HeaderSignature::Object,
+            Self::ReplySerial => HeaderSignature::U32,
+            Self::BodySignature => HeaderSignature::Signature,
+            Self::UnixFd => HeaderSignature::U32,
+            _ => HeaderSignature::String, // rest all are encoded as string
         }
     }
 }
@@ -108,54 +137,47 @@ impl Header {
         let signature_length = buf[*ctr] as usize;
         *ctr += 1;
 
+        if signature_length != 1 {
+            panic!("some complex valued header is sent, which we are not ready to handle!");
+        }
+
         //we ignore this, as we always parse the header
-        let actual_signature =
-            String::from_utf8(buf[*ctr..*ctr + signature_length].into()).unwrap();
+        let actual_signature = HeaderSignature::from_byte(buf[*ctr]);
 
         *ctr += signature_length;
 
-        let expected_header_signature = header_kind.signature();
-
-        let expected_signature = String::from_utf8([expected_header_signature].into()).unwrap();
+        let expected_signature = header_kind.signature();
 
         if actual_signature != expected_signature {
             panic!(
-                "header signature mismatch, expected {}, found {}",
+                "header signature mismatch, expected {:?}, found {:?}",
                 expected_signature, actual_signature
             );
         }
 
         *ctr += 1; // accounting for extra null byte that is always there
 
-        let value = match expected_header_signature {
-            b'u' => {
+        let value = match expected_signature {
+            HeaderSignature::U32 => {
                 let ret =
                     HeaderValue::U32(u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()));
                 *ctr += 4;
                 ret
             }
-            b'o' => {
+            HeaderSignature::Object | HeaderSignature::String => {
                 let len = u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()) as usize;
                 *ctr += 4;
                 let string = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
                 *ctr += len + 1; // +1 to account for null
                 HeaderValue::String(string)
             }
-            b's' => {
-                let len = u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()) as usize;
-                *ctr += 4;
-                let string = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
-                *ctr += len + 1; // +1 to account for null
-                HeaderValue::String(string)
-            }
-            b'g' => {
+            HeaderSignature::Signature => {
                 let len = buf[*ctr] as usize;
                 *ctr += 1;
                 let signature = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
                 *ctr += len + 1; //+1 to account for null byte
                 HeaderValue::String(signature)
             }
-            _ => panic!("unexpected header signature {}", expected_header_signature),
         };
         Self {
             kind: header_kind,
@@ -222,7 +244,7 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
             HeaderFieldKind::UnixFd => 9,
         };
 
-        let header_signature: u8 = header.kind.signature();
+        let header_signature: u8 = header.kind.signature().to_byte();
 
         let signature_length = 1; // signature length is always u8 not u32, and for all our headers, it is going to be 1
 
