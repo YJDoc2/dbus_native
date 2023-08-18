@@ -13,18 +13,16 @@ pub trait DbusSerialize {
 #[derive(Debug)]
 pub struct Variant<T>(pub T);
 
-pub struct Structure<T: DbusSerialize> {
+pub struct Structure {
     key: String,
-    val: T,
+    val: Box<dyn DbusSerialize>,
 }
 
 impl DbusSerialize for () {
     fn get_signature() -> String {
-        unreachable!("should never reach here");
+        String::new()
     }
-    fn serialize(&self, _: &mut Vec<u8>) {
-        unreachable!("should never reach here");
-    }
+    fn serialize(&self, _: &mut Vec<u8>) {}
     // for (), we have to ignore body , so we simply clear it out
     fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
         *counter = buf.len();
@@ -202,7 +200,7 @@ impl<T: DbusSerialize> DbusSerialize for Variant<T> {
         Self(elem)
     }
 }
-impl<T: DbusSerialize> DbusSerialize for Structure<T> {
+impl DbusSerialize for Structure {
     fn get_signature() -> String {
         "(sv)".to_string()
     }
@@ -211,10 +209,14 @@ impl<T: DbusSerialize> DbusSerialize for Structure<T> {
         self.key.serialize(buf);
         self.val.serialize(buf);
     }
-    fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
-        align_counter(counter, 8);
-        let key = String::deserialize(buf, counter);
-        let val = T::deserialize(buf, counter);
-        Self { key, val }
+    fn deserialize(_: &[u8], _: &mut usize) -> Self {
+        panic!("we cannot really deref the dyn type to deserialize it");
+        // align_counter(counter, 8);
+        // let key = String::deserialize(buf, counter);
+        // let val = DbusSerialize::deserialize(buf, counter);
+        // Self {
+        //     key,
+        //     val: Box::new(val),
+        // }
     }
 }
