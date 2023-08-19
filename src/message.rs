@@ -1,9 +1,10 @@
 // see https://dbus.freedesktop.org/doc/dbus-specification.html and
 // https://dbus.freedesktop.org/doc/api/html/structDBusHeader.html
 
-use crate::utils::{adjust_padding, align_counter};
+use crate::utils::{adjust_padding, align_counter, DbusError, Result};
 
 #[derive(Debug)]
+/// Indicates the endian of message
 pub enum Endian {
     Little,
     Big, // we do not support this unless explicitly requested in youki's issues
@@ -25,6 +26,7 @@ impl Endian {
     }
 }
 
+/// Represents the type of header data
 // there are others, but these are the only once we need
 #[derive(Debug, PartialEq, Eq)]
 pub enum HeaderSignature {
@@ -54,8 +56,7 @@ impl HeaderSignature {
     }
 }
 
-// NOTE that we do not support all of the possible values and options, only those
-// which are relevant and used by youki
+/// Type of message
 #[derive(Debug, PartialEq, Eq)]
 pub enum MessageType {
     MethodCall,
@@ -64,6 +65,7 @@ pub enum MessageType {
     Signal, // we will ignore this for all intents and purposes
 }
 
+/// Represents the kind of header
 #[derive(Debug, PartialEq, Eq)]
 pub enum HeaderFieldKind {
     Path,
@@ -82,23 +84,29 @@ impl HeaderFieldKind {
         match &self {
             Self::Path => HeaderSignature::Object,
             Self::ReplySerial => HeaderSignature::U32,
-            Self::BodySignature => HeaderSignature::Signature,
+            Self::BodySignature => HeaderSignature::Signature, // this is also encoded as string, but we need special handling for how its length is encoded
             Self::UnixFd => HeaderSignature::U32,
             _ => HeaderSignature::String, // rest all are encoded as string
         }
     }
 }
 
+// This is separated from header field kind, because I wanted HeaderFiledKind to be u8 like,
+// directly comparable, passable thing
 #[derive(Debug)]
-pub enum HeaderValue {
+pub enum HeaderFieldValue {
     String(String),
     U32(u32),
 }
 
-impl HeaderValue {
+impl HeaderFieldValue {
     fn as_bytes(&self) -> Vec<u8> {
         match self {
-            Self::String(s) => s.as_bytes().into(),
+            Self::String(s) => {
+                let mut t: Vec<u8> = s.as_bytes().into();
+                t.push(0); // null byte terminator
+                t
+            }
             Self::U32(v) => v.to_le_bytes().into(),
         }
     }
@@ -114,11 +122,13 @@ impl HeaderValue {
 #[derive(Debug)]
 pub struct Header {
     pub kind: HeaderFieldKind,
-    pub value: HeaderValue,
+    pub value: HeaderFieldValue,
 }
 
 impl Header {
-    fn parse(buf: &[u8], ctr: &mut usize) -> Self {
+    /// Parses a single header from given u8 vec,
+    /// assuming the header to start from given counter
+    fn parse(buf: &[u8], ctr: &mut usize) -> Result<Self> {
         let header_kind = match buf[*ctr] {
             1 => HeaderFieldKind::Path,
             2 => HeaderFieldKind::Interface,
@@ -129,63 +139,73 @@ impl Header {
             7 => HeaderFieldKind::Sender,
             8 => HeaderFieldKind::BodySignature,
             9 => HeaderFieldKind::UnixFd,
-            _ => panic!("invalid header kind"),
+            _ => panic!("invalid header kind"), // should not occur unless we screw up parsing somewhere else
         };
 
+        // account for the header_kind byte
         *ctr += 1;
 
+        // length of signature is always <255
         let signature_length = buf[*ctr] as usize;
         *ctr += 1;
 
+        // we only support string, u32 signature and object,
+        // all of which have signature of 1 byte
         if signature_length != 1 {
-            panic!("some complex valued header is sent, which we are not ready to handle!");
+            return Err(DbusError::IncompleteImplementation(format!(
+                "some complex valued header is sent"
+            )));
         }
 
-        //we ignore this, as we always parse the header
         let actual_signature = HeaderSignature::from_byte(buf[*ctr]);
 
+        // we can simply += 1, but I think this is more sensible
         *ctr += signature_length;
 
         let expected_signature = header_kind.signature();
 
         if actual_signature != expected_signature {
-            panic!(
+            return Err(DbusError::IncorrectMessage(format!(
                 "header signature mismatch, expected {:?}, found {:?}",
                 expected_signature, actual_signature
-            );
+            )));
         }
 
         *ctr += 1; // accounting for extra null byte that is always there
 
         let value = match expected_signature {
             HeaderSignature::U32 => {
-                let ret =
-                    HeaderValue::U32(u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()));
+                let ret = HeaderFieldValue::U32(u32::from_le_bytes(
+                    buf[*ctr..*ctr + 4].try_into().unwrap(), // we ca unwrap here as we know 4 byte buffer will satisfy [u8;4]
+                ));
                 *ctr += 4;
                 ret
             }
+            // both are encoded as string
             HeaderSignature::Object | HeaderSignature::String => {
                 let len = u32::from_le_bytes(buf[*ctr..*ctr + 4].try_into().unwrap()) as usize;
                 *ctr += 4;
                 let string = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
                 *ctr += len + 1; // +1 to account for null
-                HeaderValue::String(string)
+                HeaderFieldValue::String(string)
             }
+            // only difference here is that length is 1 byte, not 4 bytes
             HeaderSignature::Signature => {
                 let len = buf[*ctr] as usize;
                 *ctr += 1;
                 let signature = String::from_utf8(buf[*ctr..*ctr + len].into()).unwrap();
                 *ctr += len + 1; //+1 to account for null byte
-                HeaderValue::String(signature)
+                HeaderFieldValue::String(signature)
             }
         };
-        Self {
+        Ok(Self {
             kind: header_kind,
             value,
-        }
+        })
     }
 }
 
+/// Message preamble of initial 4 bytes
 #[derive(Debug)]
 pub struct Preamble {
     endian: Endian,
@@ -205,11 +225,16 @@ impl Preamble {
     }
 }
 
+/// Represents a complete message transported over dbus connection
 #[derive(Debug)]
 pub struct Message {
+    /// Initial 4 byte preamble needed for all messages
     pub preamble: Preamble,
+    /// Serial ID of message
     pub serial: u32,
+    // Message headers
     pub headers: Vec<Header>,
+    /// Actual body, serialized
     pub body: Vec<u8>,
 }
 
@@ -225,11 +250,15 @@ impl Message {
     }
 }
 
-// serialize without padding
+// NOTE that this does not add padding after last header, because we need
+// non-padded header length
+// This alignment must be done  separately after this
 fn serialize_headers(headers: &[Header]) -> Vec<u8> {
     let mut ret = vec![];
+
     for header in headers {
         let mut temp = vec![];
+        // all headers are always 8 byte aligned
         adjust_padding(&mut ret, 8);
 
         let header_kind: u8 = match &header.kind {
@@ -256,6 +285,7 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
         // add header value length
         match &header.kind {
             HeaderFieldKind::BodySignature => {
+                // signature length is always 1 byte
                 temp.push(header_value_length as u8);
             }
             _ => {
@@ -265,29 +295,28 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
 
         temp.extend_from_slice(&header.value.as_bytes());
 
-        temp.push(0); // null terminator
-
         ret.append(&mut temp);
     }
 
     ret
 }
 
-fn deserialize_headers(buf: &[u8]) -> Vec<Header> {
+fn deserialize_headers(buf: &[u8]) -> Result<Vec<Header>> {
     let mut ret = Vec::new();
 
     let mut ctr = 0;
+    // headers are always aligned at 8 byte boundary
     align_counter(&mut ctr, 8);
     while ctr < buf.len() {
-        let header = Header::parse(buf, &mut ctr);
+        let header = Header::parse(buf, &mut ctr)?;
         align_counter(&mut ctr, 8);
         ret.push(header);
     }
-
-    ret
+    Ok(ret)
 }
 
 impl Message {
+    /// Serialize the given message into u8 vec
     pub fn serialize(mut self) -> Vec<u8> {
         let mtype = match self.preamble.mtype {
             MessageType::MethodCall => 1,
@@ -296,6 +325,7 @@ impl Message {
             MessageType::Signal => 4,
         };
 
+        // preamble
         // Endian, message type, flags, dbus spec version
         let mut message = vec![
             self.preamble.endian.to_byte(),
@@ -329,11 +359,13 @@ impl Message {
         message
     }
 
-    pub fn deserialize(buf: &[u8], counter: &mut usize) -> Self {
+    pub fn deserialize(buf: &[u8], counter: &mut usize) -> Result<Self> {
         let endian = Endian::from_byte(buf[*counter]);
 
         if !matches!(endian, Endian::Little) {
-            panic!("we do not support big endian yet");
+            return Err(DbusError::IncompleteImplementation(
+                "we do not support big endian yet".into(),
+            ));
         }
 
         let mtype = match buf[*counter + 1] {
@@ -343,14 +375,18 @@ impl Message {
             4 => MessageType::Signal,
             _ => panic!("invalid message type {}", buf[*counter + 1]),
         };
+
         let _flags = buf[*counter + 2]; // we basically ignore flags
         let version = buf[*counter + 3];
+
         if version != 1 {
             panic!("when did dbus release new version?!?!?!");
         }
-        *counter += 4;
+
+        *counter += 4; // account for preamble bytes
 
         let preamble = Preamble::new(mtype);
+
         let body_length =
             u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
         *counter += 4;
@@ -362,18 +398,20 @@ impl Message {
             u32::from_le_bytes(buf[*counter..*counter + 4].try_into().unwrap()) as usize;
         *counter += 4;
 
-        let headers = deserialize_headers(&buf[*counter..*counter + header_array_length]);
+        let headers = deserialize_headers(&buf[*counter..*counter + header_array_length])?;
         *counter += header_array_length;
         align_counter(counter, 8);
 
+        // we do not deserialize body here, and istead let the caller do it as needed
+        // that way we don't have do deal with error checking or validating the body signature etc
         let body = Vec::from(&buf[*counter..*counter + body_length]);
         *counter += body_length;
 
-        Self {
+        Ok(Self {
             preamble,
             serial,
             headers,
             body,
-        }
+        })
     }
 }

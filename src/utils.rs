@@ -1,3 +1,18 @@
+#[derive(Debug)]
+pub enum DbusError {
+    IncompleteImplementation(String),
+    IncorrectMessage(String),
+    ConnectionError(String),
+}
+
+pub type Result<T> = std::result::Result<T, DbusError>;
+
+impl From<nix::Error> for DbusError {
+    fn from(err: nix::Error) -> DbusError {
+        DbusError::ConnectionError(err.to_string())
+    }
+}
+
 pub fn adjust_padding(buf: &mut Vec<u8>, align: usize) {
     if align == 1 {
         return; // no padding is required for 1-alignment

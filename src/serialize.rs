@@ -1,10 +1,23 @@
 use super::utils::{adjust_padding, align_counter};
 
+
+/// This indicates that given type can be serialized as dbus
+/// message body, and has methods needed for that
 pub trait DbusSerialize {
+    /// Provide signature for the given type in the dbus signature format
     fn get_signature() -> String
     where
         Self: Sized;
+    /// Serialize the given type into given buffer
+    /// This needs to adjust padding before starting serialization, but must not
+    /// pad after last byte of serialized value
     fn serialize(&self, buf: &mut Vec<u8>);
+    /// Deserialize the given type from given buffer
+    /// The implementation must adjust the counter to required padding boundary 
+    /// before starting deserialization. Also, the caller must have verified that the buffer actually
+    /// contains the given type's value, so this method does not need to do that.
+    /// Finally we should ideally return Result<Self> , but there is only one place where even with
+    /// above constraint, deserialization can fail ; so we choose to panic there instead, and keep the return type Self
     fn deserialize(buf: &[u8], counter: &mut usize) -> Self
     where
         Self: Sized;
