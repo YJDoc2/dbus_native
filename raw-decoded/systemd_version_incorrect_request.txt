@@ -7,7 +7,7 @@ l // endian
 
 \x03\x00\x00\x00 // id
 
-\0x80\x00\x00\x00 // header array length = 128
+\x80\x00\x00\x00 // header array length = 128
 
 \x01 // path
 \x01 // signature length

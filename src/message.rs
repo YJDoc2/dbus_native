@@ -257,7 +257,6 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
     let mut ret = vec![];
 
     for header in headers {
-        let mut temp = vec![];
         // all headers are always 8 byte aligned
         adjust_padding(&mut ret, 8);
 
@@ -278,7 +277,7 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
         let signature_length = 1; // signature length is always u8 not u32, and for all our headers, it is going to be 1
 
         // header preamble
-        temp.extend_from_slice(&[header_kind, signature_length, header_signature, 0]);
+        ret.extend_from_slice(&[header_kind, signature_length, header_signature, 0]);
 
         let header_value_length = header.value.len() as u32;
 
@@ -286,16 +285,15 @@ fn serialize_headers(headers: &[Header]) -> Vec<u8> {
         match &header.kind {
             HeaderFieldKind::BodySignature => {
                 // signature length is always 1 byte
-                temp.push(header_value_length as u8);
+                ret.push(header_value_length as u8);
             }
+            HeaderFieldKind::ReplySerial | HeaderFieldKind::UnixFd => { /* do nothing */ }
             _ => {
-                temp.extend_from_slice(&header_value_length.to_le_bytes());
+                ret.extend_from_slice(&header_value_length.to_le_bytes());
             }
         }
 
-        temp.extend_from_slice(&header.value.as_bytes());
-
-        ret.append(&mut temp);
+        ret.extend_from_slice(&header.value.as_bytes());
     }
 
     ret
@@ -346,10 +344,7 @@ impl Message {
         message.extend_from_slice(&(serialized_headers.len() as u32).to_le_bytes());
         message.extend_from_slice(&serialized_headers);
 
-        let required_padding = (8 - (message.len() % 8)) % 8;
-
-        // padding to 8 byte boundary
-        message.resize(message.len() + required_padding, 0);
+        adjust_padding(&mut message, 8);
 
         // body
         message.append(&mut self.body);

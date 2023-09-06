@@ -5,7 +5,7 @@ l // endian
 
 7\x00\x00\x00 // body length = 55
 
-\0xa7\x07\x00\x00 // id
+\xa7\x07\x00\x00 // id
 
 -\x00\x00\x00 // header array length = 45
 

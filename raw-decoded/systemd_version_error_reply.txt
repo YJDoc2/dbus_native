@@ -1,4 +1,8 @@
-// This was gotten by giving wring interface and path for method call
+// This was gotten by giving wrong interface and path for method call
+
+Raw message :
+
+l\x03\x01\x01\x16\x00\x00\x00\xff\xff\xff\xffw\x00\x00\x00\x05\x01u\x00\x03\x00\x00\x00\x07\x01s\x00\x14\x00\x00\x00org.freedesktop.DBus\x00\x00\x00\x00\x04\x01s\x00+\x00\x00\x00org.freedesktop.DBus.Error.UnknownInterface\x00\x00\x00\x00\x00\x08\x01g\x00\x01s\x00\x00\x06\x01s\x00\x06\x00\x00\x00:1.868\x00\x00\x11\x00\x00\x00Invalid interface\x00
 
 l // endian
 \x03 // message type error
@@ -7,7 +11,7 @@ l // endian
 
 \x16\x00\x00\x00 // body length = 22
 
-\0xff\0xff\0xff\0xff // message id, u32::max as no reply expected
+\xff\xff\xff\xff // message id, u32::max as no reply expected
 
 w\x00\x00\x00 // header array length = 119
 
